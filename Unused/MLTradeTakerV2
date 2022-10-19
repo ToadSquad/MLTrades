@@ -1,0 +1,114 @@
+#include<Trade\Trade.mqh>
+//+------------------------------------------------------------------+
+//|                                                 MLTradeTaker.mq5 |
+//|                        Copyright 2020, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+CPositionInfo  m_position;
+CTrade tradeT;
+#property copyright "Copyright 2020, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+  {
+//--- create timer
+   EventSetTimer(60);
+   
+//---
+   return(INIT_SUCCEEDED);
+  }
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+  {
+//--- destroy timer
+   EventKillTimer();
+   
+  }
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+
+ENUM_TIMEFRAMES times[] = {PERIOD_M1,PERIOD_M5,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H4,PERIOD_H6,PERIOD_H8};
+void OnTick()
+  {
+//---
+   for(int t=0;t<ArraySize(times)-1;t++){
+     for(int x=0;x<SymbolsTotal(1);x++){
+        string symbol = SymbolName(x,1);
+        Comment(symbol+EnumToString(times[t]));
+        int file_handle=FileOpen("Data"+symbol+EnumToString(times[t])+".txt",FILE_READ|FILE_WRITE|FILE_CSV|FILE_COMMON);
+        int file_handle2=FileOpen("signal"+symbol+EnumToString(times[t])+".txt",FILE_READ|FILE_WRITE|FILE_CSV|FILE_COMMON);
+         double ma = iMA(symbol,times[t],200,0,MODE_SMA,PRICE_CLOSE);
+         //double bb = iBands(symbol,times[t],50,0,2,PRICE_CLOSE);
+         double atr = iATR(symbol,times[t],50);
+         double rsi = iRSI(symbol,times[t],50,PRICE_CLOSE);
+         
+         double ArrMa[];
+         double ArrAtr[];
+         double ArrRsi[];
+         
+         ArraySetAsSeries(ArrMa,true);
+         ArraySetAsSeries(ArrAtr,true);
+         ArraySetAsSeries(ArrRsi,true);
+         
+         CopyBuffer(ma,0,0,barcount,ArrMa);
+         CopyBuffer(atr,0,0,barcount,ArrAtr);
+         CopyBuffer(rsi,0,0,barcount,ArrRsi);
+
+        double BarClose = iClose(symbol,times[t],x);
+            
+        double SMA = 0;
+        if(BarClose<ArrMa[x]){SMA = -1;}
+        else{SMA = 1;}
+        double RSI = ArrRsi[x];
+        double ATR = ArrAtr[x];
+
+         string toprint=(DoubleToString(BarClose,8)+","+DoubleToString(SMA,8)+","+DoubleToString(RSI,8)+","+DoubleToString(ATR));
+         FileWrite(file_handle,toprint);
+         string signal = FileReadString(file_handle2);
+         //Print(signal);
+         if(signal == "buy"){
+            OpenBuy(2,symbol);
+            FileWrite(file_handle2,"Trade Taken");
+         }
+         if(signal == "sell"){
+            OpenSell(2,symbol);
+            FileWrite(file_handle2,"Trade Taken");
+         }
+         FileClose(file_handle);
+         FileClose(file_handle2);
+     }}
+         
+  }
+void OpenBuy(double LotSize,string symbol){
+      Print("Buying");
+      if(!PositionSelect(symbol)){
+        tradeT.Buy(1,symbol,0,SymbolInfoDouble(symbol,SYMBOL_BID)-SymbolInfoDouble(symbol,SYMBOL_POINT)*(25*10),SymbolInfoDouble(symbol,SYMBOL_ASK)+SymbolInfoDouble(symbol,SYMBOL_POINT)*(25*10),"Buy");
+      }
+      //barOpened = Bars(_Symbol,_Period);
+      
+   
+}
+void OpenSell(double LotSize,string symbol){
+      Print("Selling");
+      if(!PositionSelect(symbol)){
+        tradeT.Sell(1,symbol,0,SymbolInfoDouble(symbol,SYMBOL_ASK)+SymbolInfoDouble(symbol,SYMBOL_POINT)*(25*10),SymbolInfoDouble(symbol,SYMBOL_BID)-SymbolInfoDouble(symbol,SYMBOL_POINT)*(25*10),"Sell");
+      }
+      //barOpened = Bars(_Symbol,_Period);
+      
+   
+}
+//+------------------------------------------------------------------+
+//| Timer function                                                   |
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+//---
+   
+  }
+//+------------------------------------------------------------------+
