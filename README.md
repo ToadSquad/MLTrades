@@ -17,3 +17,9 @@ if the percentage is above 60% for 1 we will Buy, if it is above 60% for sell we
 # Trade Tracking
 
 Trade tracking is done simply with a trade class and dill to store the list of trade objects through code executions.
+
+# Back Testing
+
+120 Day Period
+
+![alt text](https://i.imgur.com/9gh24nq.png)
